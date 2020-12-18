@@ -44,6 +44,18 @@ void setup() {
 }
 
 void loop() {
+
+  // Comprobamos si hay comandos para leer
+  if (Serial1.available()) {
+    input[i] = Serial1.read();
+    // Todos los comandos deben acabar con un punto
+    if(input[i] == '.') {
+      // Cuando el punto indique el fin del comando pasamos a traducirlo
+      cmd();
+      i = 0;
+    }
+    else i ++;    
+  }
   
  //Lectura de ultrasonidos;
  int cm1 = ping(Trigger1,Echo1);
@@ -106,6 +118,35 @@ void loop() {
  Serial3.write(str);
 }
 
+int cmd(){
+  int numero = 0;
+  
+  /* CAMBIO DE LA DISTANCIA DE REFERENCIA: Sintaxis: "[R/r][referenca]." */
+  if(input[0] == 'r' || input[0] == 'R') {
+    for(int j = 0; j < 8; j++) {
+      if(input[j] == '.') {
+        j = 8;
+      }
+      else if(47 < input[j] && input[j] < 58) {
+        numero = numero * 10 + (input[j] - '0');
+      }
+    }
+    if(5 <= numero) Ref_dist = numero;
+  }
+
+  /* CAMBIO DEL MODO DE FUNCIONAMIENTO: Sintaxis: "[M/m][modo]." */
+  if(input[0] == 'm' || input[0] == 'M') {
+    for(int j = 0; j < 8; j++) {
+      if(input[j] == '.') {
+        j = 8;
+      }
+      else if(47 < input[j] && input[j] < 58) {
+        numero = numero * 10 + (input[j] - '0');
+      }
+    }
+    Modo = numero;
+    if(Modo == 3 || Modo == 4 || Modo == 5 || Modo == 6)        Ref_dist = DD; //(DD + DI)/2;
+}
 
  int ping(int Trigger1, int Echo1) {
   long duration, distanceCm;
