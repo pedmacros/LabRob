@@ -1,15 +1,17 @@
 #define baudrate 38400
 
-#define speed 128
+#define power 110
 const int Tm=100;
 
 //Ultrasonido derecha
 const int Echo1 = 12;
 const int Trigger1 = 13;
+int DD;
 
 //Ultrasonido izquierda
 const int Echo2 = 52;   //2 es el sensor de la izquierda
 const int Trigger2 = 50;
+int DI;
 
 // Motor 1 Derecha
  int ENA=2;
@@ -22,7 +24,30 @@ const int Trigger2 = 50;
   int IN4=6;
 
 int state;
-  
+
+//Control proporcional
+int Kp;
+int Kd;
+
+int KpDif;
+int KdDif;
+
+int err;
+int errPrev;
+
+int err_dif;
+int errPrevDif;
+
+int ref;
+int U;
+int UDif;
+int UD;
+int UI;
+
+//Tiempo
+int tiempo;
+int tiempoPrev;
+int elapsedTime;  
   
 void setup() {
   // put your setup code here, to run once:
@@ -41,36 +66,53 @@ void setup() {
   Serial3.begin(baudrate);
 
   state = 0;
+
+//Inicializar constantes de control
+Kp = 1;
+Kd = 2;
+
+KpDif = 0.5;
+KdDif = 0;
+
+err = 0;
+ref = 30;
+U = 0;
+err_dif=0;
+
+tiempo=millis();
 }
 
 void loop() {
-  
- //Lectura de ultrasonidos;
- int cm1 = ping(Trigger1,Echo1);
- delay(50);
- int cm2 = ping(Trigger2,Echo2);
- delay(Tm);
 
-
-  if(cm1>cm2 && cm1>50 && cm2>50){
-      adelante_izquierda();}
-  else if(cm2>cm1 && cm2>50 && cm1>50){
-      adelante_izquierda;}
-  else if(cm1>cm2 && cm1<50 && cm2<50){  
-      adelante_derecha;}
-  else if(cm2>cm1 && cm2<50 && cm1<50){
-      adelante_derecha;}
-  else if(cm1>cm2 && cm1>50 && cm2<50){
-      adelante_izquierda;}
-  else if(cm2>cm1 && cm2>50 && cm1<50){
-      adelante_derecha;}
-  else{
-      adelante();
-    }
-
+ // Medimos el tiempo transcurrido
+ tiempoPrev = tiempo;
+ tiempo = millis();
+ elapsedTime = (tiempo - tiempoPrev) / 1000;
  
+ //Lectura de ultrasonidos;
+ DD = ping(Trigger1,Echo1);
+ DI = ping(Trigger2,Echo2);
+
+ //Error distancia
+ errPrev = err;
+ err = DD - ref;
+ 
+ U = abs(Kp * err + Kd*(err-errPrev)/elapsedTime);
+ UDif = abs(KpDif*err + KdDif*(err_dif-errPrevDif)/elapsedTime);
+
+ U+=power;
+ UD = power+U;
+ UI = power-U;
+ if(err<0)
+ {
+  atras();
+ }else if(err>0){
+  adelante();
+ }else{
+  para();
+ }
  char str[20];
- sprintf(str,"%d;%d;%d;0;0;0;0\n",Tm,cm1,cm2);
+ sprintf(str,"%d;%d;%d;0;0;0;0\n",elapsedTime,DD,DI);
  Serial3.write(str);
 }
 
@@ -89,14 +131,14 @@ void loop() {
 
  void adelante ()
 {
-  //direccion motor derecha
+  //direccion motor 1
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
-  analogWrite(ENA, speed);
-  //direccion motor izquierda
+  analogWrite(ENA, UD);
+  //direccion motor 2
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,UI);
 }
 
 void atras ()
@@ -104,88 +146,44 @@ void atras ()
   //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, speed);
+  analogWrite(ENA, UD);
   //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,UI);
 }
 
 void derecha ()
 {
-  //direccion motor derecha
+  //direccion motor 1
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
-  analogWrite(ENA, speed);
-  //direccion motor izquierda
+  analogWrite(ENA, power);
+  //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,power);
 }
 
 void izquierda ()
 {
-  //direccion motor derecha
+  //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, speed);
-  //direccion motor izquierda
+  analogWrite(ENA, power);
+  //direccion motor 2
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
-  analogWrite(ENB,speed);
-}
-
-void adelante_derecha(){
-  //direccion motor derecha
-  digitalWrite(IN1,HIGH);
-  digitalWrite(IN2,LOW);
-  analogWrite(ENA, speed-20);
-  //direccion motor izquierda
-  digitalWrite(IN3,HIGH);
-  digitalWrite(IN4,LOW);
-  analogWrite(ENB,speed);
-}
-
-void adelante_izquierda(){
-  //direccion motor derecha
-  digitalWrite(IN1,HIGH);
-  digitalWrite(IN2,LOW);
-  analogWrite(ENA, speed);
-  //direccion motor izquierda
-  digitalWrite(IN3,HIGH);
-  digitalWrite(IN4,LOW);
-  analogWrite(ENB,speed-20);
-}
-
-void atras_derecha(){
-  //direccion motor derecho
-  digitalWrite(IN1,LOW);
-  digitalWrite(IN2,HIGH);
-  analogWrite(ENA, speed);
-  //direccion motor izquierdo
-  digitalWrite(IN3,LOW);
-  digitalWrite(IN4,HIGH);
-  analogWrite(ENB,speed-20);
-}
-
-void atras_izquierda(){
-  //direccion motor derecho
-  digitalWrite(IN1,LOW);
-  digitalWrite(IN2,HIGH);
-  analogWrite(ENA, speed-20);
-  //direccion motor izquierdo
-  digitalWrite(IN3,LOW);
-  digitalWrite(IN4,HIGH);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,power);
 }
 
 void para ()
 {
-  //direccion motor derecha
+  //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,LOW);
   analogWrite(ENA, 0);
-  //direccion motor izquierda
+  //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,LOW);
   analogWrite(ENB,0);

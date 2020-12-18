@@ -1,6 +1,6 @@
 #define baudrate 38400
 
-#define power 100
+#define power 110
 const int Tm=100;
 
 //Ultrasonido derecha
@@ -71,8 +71,8 @@ void setup() {
 Kp = 1;
 Kd = 2;
 
-KpDif = 30;
-KdDif = 1;
+KpDif = 0.5;
+KdDif = 0;
 
 err = 0;
 ref = 30;
@@ -138,11 +138,11 @@ void loop() {
   //direccion motor 1
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
-  analogWrite(ENA, U);
+  analogWrite(ENA, UD);
   //direccion motor 2
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
-  analogWrite(ENB,U);
+  analogWrite(ENB,UI);
 }
 
 void atras ()
@@ -150,11 +150,11 @@ void atras ()
   //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, U);
+  analogWrite(ENA, UD);
   //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
-  analogWrite(ENB,U);
+  analogWrite(ENB,UI);
 }
 
 void derecha ()
