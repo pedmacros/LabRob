@@ -25,10 +25,16 @@ int state;
 
 //Control proporcional
 int Kp;
+int Kd;
 int err;
+int errPrev;
 int ref;
 int U;
-  
+
+//Tiempo
+int tiempo;
+int tiempoPrev;
+int elapsedTime;  
   
 void setup() {
   // put your setup code here, to run once:
@@ -49,25 +55,37 @@ void setup() {
   state = 0;
 
 //Inicializar constantes de control
-Kp = 5;
+Kp = 1;
+Kd = 2;
 err = 0;
 ref = 30;
 U = 0;
 }
 
 void loop() {
-  
+
+ // Medimos el tiempo transcurrido
+ tiempoPrev = tiempo;
+ tiempo = millis();
+ elapsedTime = (tiempo - tiempoPrev) / 1000;
+ 
  //Lectura de ultrasonidos;
  int cm1 = ping(Trigger1,Echo1);
- delay(50);
  int cm2 = ping(Trigger2,Echo2);
- delay(Tm);
-
- err = (cm1+cm2)/2 - ref; 
- U = Kp * err;
-
- adelante();
  
+ errPrev = err;
+ err = (cm1+cm2)/2 - ref; 
+ 
+ U = abs(Kp * err + Kd*(err-errPrev)/elapsedTime);
+ U+=power;
+ if(err<0)
+ {
+  atras();
+ }else if(err>0){
+  adelante();
+ }else{
+  para();
+ }
  char str[20];
  sprintf(str,"%d;%d;%d;0;0;0;0\n",Tm,cm1,cm2);
  Serial3.write(str);
@@ -103,11 +121,11 @@ void atras ()
   //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, power);
+  analogWrite(ENA, U);
   //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
-  analogWrite(ENB,power);
+  analogWrite(ENB,U);
 }
 
 void derecha ()
