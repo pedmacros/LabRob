@@ -1,6 +1,6 @@
 #define baudrate 38400
 
-#define speed 100
+#define power 100
 const int Tm=100;
 
 //Ultrasonido derecha
@@ -22,6 +22,12 @@ const int Trigger2 = 50;
   int IN4=6;
 
 int state;
+
+//Control proporcional
+int Kp;
+int err;
+int ref;
+int U;
   
   
 void setup() {
@@ -41,6 +47,12 @@ void setup() {
   Serial3.begin(baudrate);
 
   state = 0;
+
+//Inicializar constantes de control
+Kp = 5;
+err = 0;
+ref = 30;
+U = 0;
 }
 
 void loop() {
@@ -51,23 +63,10 @@ void loop() {
  int cm2 = ping(Trigger2,Echo2);
  delay(Tm);
 
- switch(state){
-  case 0:
-    adelante();
-    if(cm1<=30 && cm2 <= 30){
-      state = 1;
-    }
-  break;
-  case 1:
-    atras();
-    if(cm1>=50 && cm2 >= 50){
-      state = 2;
-    }
-  break;
-  case 2:
-    para();
-  break;
- }
+ err = (cm1+cm2)/2 - ref; 
+ U = Kp * err;
+
+ adelante();
  
  char str[20];
  sprintf(str,"%d;%d;%d;0;0;0;0\n",Tm,cm1,cm2);
@@ -92,11 +91,11 @@ void loop() {
   //direccion motor 1
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
-  analogWrite(ENA, speed);
+  analogWrite(ENA, U);
   //direccion motor 2
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,U);
 }
 
 void atras ()
@@ -104,11 +103,11 @@ void atras ()
   //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, speed);
+  analogWrite(ENA, power);
   //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,power);
 }
 
 void derecha ()
@@ -116,11 +115,11 @@ void derecha ()
   //direccion motor 1
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
-  analogWrite(ENA, speed);
+  analogWrite(ENA, power);
   //direccion motor 2
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,power);
 }
 
 void izquierda ()
@@ -128,11 +127,11 @@ void izquierda ()
   //direccion motor 1
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, speed);
+  analogWrite(ENA, power);
   //direccion motor 2
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
-  analogWrite(ENB,speed);
+  analogWrite(ENB,power);
 }
 
 void para ()
