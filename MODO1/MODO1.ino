@@ -35,6 +35,10 @@ int U;
 int tiempo;
 int tiempoPrev;
 int elapsedTime;  
+
+//Comunicacion
+char cmd[100];
+int cmdIndex;
   
 void setup() {
   // put your setup code here, to run once:
@@ -64,6 +68,24 @@ U = 0;
 
 void loop() {
 
+  //Leemos los bytes que se envian por bluetooth y los almacenamos en un vector
+  //Cuando llega \n, se ejecuta el comando y se reinicia el indice del vector
+  if(Serial3.available())
+  {
+    char c = (char)Serial3.read();
+
+    if(c=='\n')
+    {
+      cmd[cmdIndex] = 0;
+      exeCmd();
+      cmdIndex = 0;
+    }else{
+      cmd[cmdIndex] = c;
+      if(cmdIndex<99) cmdIndex++;
+    }
+  }
+
+
  // Medimos el tiempo transcurrido
  tiempoPrev = tiempo;
  tiempo = millis();
@@ -87,10 +109,22 @@ void loop() {
   para();
  }
  char str[20];
- sprintf(str,"%d;%d;%d;0;0;0;0\n",Tm,cm1,cm2);
- Serial3.write(str);
+ //sprintf(str,"%d;%d;%d;0;0;0;0\n",Tm,cm1,cm2);
+ //Serial3.write(str);
 }
 
+void exeCmd(){
+  if(cmd[0]=='d')
+  {
+    int val = 0;
+    for(int i=3; cmd[i]!=0; i++) { // number begins at cmd[6]
+      val = val*10 + (cmd[i]-'0');
+    }
+       //Si el comando es "d30" la referencia será de 30cm 
+    ref = val;
+    Serial3.print("Se ha establecido la nueva referencia");
+  }
+}
 
  int ping(int Trigger1, int Echo1) {
   long duration, distanceCm;
