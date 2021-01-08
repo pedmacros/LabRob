@@ -67,23 +67,28 @@ int tiempo;
 int tiempoPrev;
 int elapsedTime;  
 
+int TiempoCont;
+int TicksI,TicksD;
+
 
 void interrupcionD()
 {
-  incrementoTiempoTicksD= millis()-tiempoUltimaInterrupcionD; //millis comienza la cuenta del tiempo que lleva desde que se inicio el programa
-  tiempoUltimaInterrupcionD=millis();
-  frecuenciaD=(1000)/(double)incrementoTiempoTicksD; //1000 porque son milisengundos
-  WD=(((2*pi)/N)*frecuenciaD);
+  TicksD++;
+  /*incrementoTiempoTicksD= tiempo-tiempoUltimaInterrupcionD; //millis comienza la cuenta del tiempo que lleva desde que se inicio el programa
+  tiempoUltimaInterrupcionD=tiempo;
+  frecuenciaD=(1000.0)/(double)incrementoTiempoTicksD; //1000 porque son milisengundos
+  WD=((((2*pi)/N)*frecuenciaD))/48;*/
   
   
 }
 
 void interrupcionI()
 {
-  incrementoTiempoTicksI= millis()-tiempoUltimaInterrupcionI; //millis comienza la cuenta del tiempo que lleva desde que se inicio el programa
-  tiempoUltimaInterrupcionI=millis();
+  TicksI++;
+  /*incrementoTiempoTicksI= tiempo-tiempoUltimaInterrupcionI; //millis comienza la cuenta del tiempo que lleva desde que se inicio el programa
+  tiempoUltimaInterrupcionI=tiempo;
   frecuenciaI=(1000)/(double)incrementoTiempoTicksI;
-  WI=(((2*pi)/N)*frecuenciaI);
+  WI=((((2*pi)/N)*frecuenciaI))/48;*/
   
 }
 
@@ -103,6 +108,7 @@ void setup() {
   pinMode(IN3,OUTPUT);
   pinMode(IN4,OUTPUT);
   Serial3.begin(baudrate);
+  Serial.begin(baudrate);
 
    state=0;
 //Interrupciones
@@ -122,6 +128,8 @@ U = 0;
 err_dif=0;
 
 tiempo=millis();
+
+TiempoCont = 0;
 }
 
 void loop() {
@@ -129,16 +137,26 @@ void loop() {
  tiempoPrev = tiempo;
  tiempo = millis();
  elapsedTime = (tiempo - tiempoPrev) / 1000;
+
+ if((millis()-TiempoCont)>10)
+ {
+  //Calculamos la velocidad de la rueda izquierda
+  WI=(TicksI/10*1000/8/48*2*pi);
+  WD=(TicksD/10*1000/8/48*2*pi);
+  TicksI=0;
+  TicksD=0;
+  TiempoCont=millis();
+ }
   
  //Lectura de ultrasonidos;
  int DD = ping(Trigger1,Echo1);
  int DI = ping(Trigger2,Echo2);
 
-UD = 120;
-UI = 120;
-adelante();
+ UD = 120;
+ UI = 120;
+ adelante();
   
-//Calculo de velocidad angular media
+ //Calculo de velocidad angular media
   W=(WD+WI)/2;
   /*
    //Error velocidad angular
@@ -168,8 +186,9 @@ adelante();
 */
 
  char str[100];
- sprintf(str,"%d;%d;%d;0;0;%f;%f\n",Tm,DD,DI,WD,WI);
+ sprintf(str,"%d;%d;%d;%d;%d;0;0;%d;%d\n",Tm,DD,DI,(int)WI,(int)WD,UI,UD);
  Serial3.print(str);
+ Serial.println(str);
 }
 
 
