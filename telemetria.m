@@ -44,7 +44,7 @@ subplot(2,1,1);
 plot(tiempo,tel(:,2), tiempo,tel(:,3), tiempo,tel(:,4), tiempo,tel(:,5), tiempo,tel(:,6));
 xlabel('Tiempo (ms)');
 title('Sensores');
-legend('Distancia Izq','Distancia Dch','Velocidad Izq','Velocidad Dch','Referencia');
+legend('Distancia Izq','Distancia Dch','Velocidad Izq','Velocidad Dch','Referencia','Error');
 grid;
 
 subplot(2,1,2);

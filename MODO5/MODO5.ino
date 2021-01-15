@@ -27,38 +27,26 @@ int DI;
 int state;
 
 // Variables para interrupcion motor 1 Derecha
-volatile unsigned tiempoUltimaInterrupcionD=0;
-volatile unsigned incrementoTiempoTicksD=0;
-float frecuenciaD=0;
-int WD=0;
+float WD=0;
 
 //Variables para interrupcion motor 2 Izquierda
-volatile unsigned tiempoUltimaInterrupcionI=0;
-volatile unsigned incrementoTiempoTicksI=0;
-float frecuenciaI=0;
-int WI=0;
+float WI=0;
 double W;
 
 int N=8; //Numero de ranuras que tiene el encoder (lo he puesto al azar)
-int cont=0;
 //int referenciaVel=200;
 
-//Control proporcional
+//Control PID
 int Kp;
-int Kd;
+int Td;
+int Ti;
 
-int KpDif;
-int KdDif;
+int q0,q1,q2;
 
-int err;
-int errPrev;
+float err_I,err_1_I,err_2_I,err_D,err_1_D,err_2_D;
 
-int err_dif;
-int errPrevDif;
-
-int ref;
-int U;
-int UDif;
+float ref_I,ref_D;
+int U_I,U_D,U_1_I,U_1_D;
 int UD;
 int UI;
 
@@ -69,6 +57,8 @@ int elapsedTime;
 
 int TiempoCont;
 int TicksI,TicksD;
+
+int tiempoExp;
 
 
 void interrupcionD()
@@ -116,18 +106,29 @@ attachInterrupt(digitalPinToInterrupt(20),interrupcionD, FALLING);  //interrupci
 attachInterrupt(digitalPinToInterrupt(21),interrupcionI, FALLING); 
 
 //Inicializar constantes de control
-Kp = 1;
-Kd = 2;
+Kp = 0.1;
+Td = 100;
+Ti = 50;
 
-KpDif = 0.5;
-KdDif = 0;
 
-err = 0;
-ref = 30;
-U = 0;
-err_dif=0;
+err_I = 0;
+err_1_I = 0;
+err_2_I = 0;
 
-tiempo=millis();
+err_D = 0;
+err_1_D = 0;
+err_2_D = 0;
+
+
+ref_I = 12.0;
+ref_D = 12.0;
+U_I = 0;
+U_1_I=0;
+U_D = 0;
+U_1_D=0;
+
+tiempo = millis();
+tiempoExp = millis();
 
 TiempoCont = 0;
 }
@@ -153,43 +154,71 @@ void loop() {
  int DD = ping(Trigger1,Echo1);
  int DI = ping(Trigger2,Echo2);
 
- UD = 120;
- UI = 120;
- adelante();
-  
  //Calculo de velocidad angular media
-  W=(WD+WI)/2;
-  /*
-   //Error velocidad angular
-   errPrev=err;
-   err=ref-W;
+ W=(WD+WI)/2.0;
 
-  //Calculo de señales de control
- U = abs(Kp * err + Kd*(err-errPrev)/elapsedTime);
- UDif = abs(KpDif*err + KdDif*(err_dif-errPrevDif)/elapsedTime);
 
- U+=power;
- UD = U+UDif/2;
- UI = U-UDif/2;
- if(err>1){
-   adelante();
- }
 
- //Para dar escalones cuando el error sea pequeño
- if(err<1 && cont==0){
-  ref=ref+20;
-  cont=1;
- }
- if(err<1 && cont==1){
-  ref=ref-10;
-  cont=2;
- }
-*/
+/* if(millis()-tiempoExp > 3000 && millis()-tiempoExp < 6000)
+ {
+  ref = 6;
+ }else if(millis()-tiempoExp > 6000){
+  ref = 8;
+ }else{
+  ref = 4;
+ }*/
+  
+
+
+ //--------------------------------------
+ //CONTROL RUEDA DERECHA
+ //--------------------------------------
+ //Error velocidad angular
+ err_D=WD-ref_D;
+
+ q0 = Kp*(1+(Td/elapsedTime));
+ q1 = Kp*(-1-2*Td/elapsedTime + elapsedTime/Ti);
+ q2 = Kp*Td/elapsedTime;
+
+ U_D = U_1_D + q0*err_D + q1*err_1_D + q2*err_2_D;
+
+ UD = U_D+power;
+
+ err_2_D = err_1_D;
+ err_1_D = err_D;
+ U_1_D = U_D;
+
+
+
+ //--------------------------------------
+ //CONTROL RUEDA IZQUIERDA
+ //--------------------------------------
+ //Error velocidad angular
+ err_I=WI-ref_I;
+
+ q0 = Kp*(1+(Td/elapsedTime));
+ q1 = Kp*(-1-2*Td/elapsedTime + elapsedTime/Ti);
+ q2 = Kp*Td/elapsedTime;
+
+ U_I = U_1_I + q0*err_I + q1*err_1_I + q2*err_2_I;
+
+ UI = U_I+power;
+ 
+ err_2_I = err_1_I;
+ err_1_I = err_I;
+ U_1_I = U_I;
+ 
+ if(UD > 255) UD = 255;
+ if(UD < 0) UD = 0;
+ if(UI > 255) UI = 255;
+ if(UI < 0) UI = 0;
+
+ adelante();
 
  char str[100];
- sprintf(str,"%d;%d;%d;%d;%d;0;0;%d;%d\n",Tm,DD,DI,WI,WD,UI,UD);
+ sprintf(str,"%d;%d;%d;%d;%d;%d;%d;%d;%d\n",Tm,DD,DI,(int)WI,(int)WD,(int)ref_I,(int)err_I,UI,UD);
  Serial3.print(str);
- Serial.println(str);
+ 
 }
 
 
