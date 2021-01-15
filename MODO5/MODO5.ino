@@ -30,13 +30,13 @@ int state;
 volatile unsigned tiempoUltimaInterrupcionD=0;
 volatile unsigned incrementoTiempoTicksD=0;
 float frecuenciaD=0;
-float WD=0;
+int WD=0;
 
 //Variables para interrupcion motor 2 Izquierda
 volatile unsigned tiempoUltimaInterrupcionI=0;
 volatile unsigned incrementoTiempoTicksI=0;
 float frecuenciaI=0;
-float WI=0;
+int WI=0;
 double W;
 
 int N=8; //Numero de ranuras que tiene el encoder (lo he puesto al azar)
@@ -141,8 +141,9 @@ void loop() {
  if((millis()-TiempoCont)>10)
  {
   //Calculamos la velocidad de la rueda izquierda
-  WI=(TicksI/10*1000/8/48*2*pi);
-  WD=(TicksD/10*1000/8/48*2*pi);
+  //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
+  WI=TicksI*1.6362;
+  WD=TicksD*1.6362;
   TicksI=0;
   TicksD=0;
   TiempoCont=millis();
@@ -186,7 +187,7 @@ void loop() {
 */
 
  char str[100];
- sprintf(str,"%d;%d;%d;%d;%d;0;0;%d;%d\n",Tm,DD,DI,(int)WI,(int)WD,UI,UD);
+ sprintf(str,"%d;%d;%d;%d;%d;0;0;%d;%d\n",Tm,DD,DI,WI,WD,UI,UD);
  Serial3.print(str);
  Serial.println(str);
 }
