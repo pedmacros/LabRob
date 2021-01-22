@@ -2,7 +2,7 @@
 #define pi 3.141516
 #define power 110
 
-const int Tm=100;
+int Tm;
 
 //Ultrasonido derecha
 const int Echo1 = 12;
@@ -64,22 +64,11 @@ int tiempoExp;
 void interrupcionD()
 {
   TicksD++;
-  /*incrementoTiempoTicksD= tiempo-tiempoUltimaInterrupcionD; //millis comienza la cuenta del tiempo que lleva desde que se inicio el programa
-  tiempoUltimaInterrupcionD=tiempo;
-  frecuenciaD=(1000.0)/(double)incrementoTiempoTicksD; //1000 porque son milisengundos
-  WD=((((2*pi)/N)*frecuenciaD))/48;*/
-  
-  
 }
 
 void interrupcionI()
 {
   TicksI++;
-  /*incrementoTiempoTicksI= tiempo-tiempoUltimaInterrupcionI; //millis comienza la cuenta del tiempo que lleva desde que se inicio el programa
-  tiempoUltimaInterrupcionI=tiempo;
-  frecuenciaI=(1000)/(double)incrementoTiempoTicksI;
-  WI=((((2*pi)/N)*frecuenciaI))/48;*/
-  
 }
 
   
@@ -129,7 +118,7 @@ U_1_D=0;
 
 tiempo = millis();
 tiempoExp = millis();
-
+Tm = millis();
 TiempoCont = 0;
 }
 
@@ -152,11 +141,8 @@ void loop() {
 
   if((millis()-tiempoExp) > 3000 && (millis()-tiempoExp) < 6000)
   {
-    ref_D = 25;
-    ref_I = 25;
-  }else if((millis()-tiempoExp) > 6000 && (millis()-tiempoExp) < 9000){
-    ref_D = 35;
-    ref_I = 35;
+    ref_D = 30;
+    ref_I = 30;
   }else{
     ref_D = 0;
     ref_I = 0;
@@ -218,8 +204,10 @@ void loop() {
  adelante();
 
  char str[100];
+ Tm = millis()-Tm;
  sprintf(str,"%d;%d;%d;%d;%d;%d;%d;%d;%d\n",Tm,DD,DI,(int)WI,(int)WD,(int)ref_I,(int)err_I,UI,UD);
  Serial3.print(str);
+ Tm = millis();
  
 }
 
