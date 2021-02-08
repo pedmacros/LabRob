@@ -1,7 +1,6 @@
 #define baudrate 38400
 
 #define power 100
-const int Tm=100;
 
 //Ultrasonido derecha
 const int Echo1 = 12;
@@ -12,14 +11,14 @@ const int Echo2 = 52;   //2 es el sensor de la izquierda
 const int Trigger2 = 50;
 
 // Motor 1 Derecha
- int ENA=2;
- int IN1=3;
- int IN2=4;
+int ENA=2;
+int IN1=3;
+int IN2=4;
 
 // Motor 2 izquierda
-  int ENB=7;
-  int IN3=5;
-  int IN4=6;
+int ENB=7;
+int IN3=5;
+int IN4=6;
 
 int state;
 
@@ -35,10 +34,6 @@ int U;
 int tiempo;
 int tiempoPrev;
 int elapsedTime;  
-
-//Comunicacion
-char cmd[100];
-int cmdIndex;
   
 void setup() {
   // put your setup code here, to run once:
@@ -59,37 +54,19 @@ void setup() {
   state = 0;
 
 //Inicializar constantes de control
-Kp = 1;
-Kd = 2;
-err = 0;
-ref = 30;
-U = 0;
+  Kp = 1;
+  Kd = 2;
+  err = 0;
+  ref = 30;
+  U = 0;
 }
 
 void loop() {
 
-  //Leemos los bytes que se envian por bluetooth y los almacenamos en un vector
-  //Cuando llega \n, se ejecuta el comando y se reinicia el indice del vector
-  if(Serial3.available())
-  {
-    char c = (char)Serial3.read();
-
-    if(c=='\n')
-    {
-      cmd[cmdIndex] = 0;
-      exeCmd();
-      cmdIndex = 0;
-    }else{
-      cmd[cmdIndex] = c;
-      if(cmdIndex<99) cmdIndex++;
-    }
-  }
-
-
  // Medimos el tiempo transcurrido
  tiempoPrev = tiempo;
  tiempo = millis();
- elapsedTime = (tiempo - tiempoPrev) / 1000;
+ elapsedTime = (tiempo - tiempoPrev);
  
  //Lectura de ultrasonidos;
  int cm1 = ping(Trigger1,Echo1);
@@ -100,30 +77,17 @@ void loop() {
  
  U = abs(Kp * err + Kd*(err-errPrev)/elapsedTime);
  U+=power;
- if(err<0)
+ if(err<-1)
  {
   atras();
- }else if(err>0){
+ }else if(err>1){
   adelante();
  }else{
   para();
  }
  char str[20];
- //sprintf(str,"%d;%d;%d;0;0;0;0\n",Tm,cm1,cm2);
- //Serial3.write(str);
-}
-
-void exeCmd(){
-  if(cmd[0]=='d')
-  {
-    int val = 0;
-    for(int i=3; cmd[i]!=0; i++) { // number begins at cmd[6]
-      val = val*10 + (cmd[i]-'0');
-    }
-       //Si el comando es "d30" la referencia será de 30cm 
-    ref = val;
-    Serial3.print("Se ha establecido la nueva referencia");
-  }
+ sprintf(str,"%d;%d;%d;%d;%d;0;0\n",elapsedTime,cm1,cm2,ref,(int)U);
+ Serial3.write(str);
 }
 
  int ping(int Trigger1, int Echo1) {
