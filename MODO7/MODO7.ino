@@ -1,8 +1,8 @@
 #define baudrate 38400
 #define pi 3.141516
 #define power 110 //compoensación de la zona muerta
-#define r 3.25 //radio de la rueda
-#define b 10.0 //distancia entre ruedas en cm
+#define r 3.25 //radio de la rueda en cm
+#define b 5.0 //distancia entre ruedas es 10 cm
 
 int Tm;
 
@@ -138,10 +138,10 @@ void loop() {
  if((millis()-TiempoCont)>10)
  {
   //Calculamos la velocidad de la rueda izquierda
-  //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
-  WI=TicksI*1.6362; //rad/s
-  WD=TicksD*1.6362; //rad/s
-  phi_p = (WD*r - WI*r)/b;
+  //((Ticks/10.0)*((1000.0/4.0)/48.0)*(2.0*pi))
+  WI=TicksI*3.2725; //rad/s
+  WD=TicksD*3.2725; //rad/s
+  phi_p = abs(WD*r - WI*r)/b;
   TicksI=0;
   TicksD=0;
   TiempoCont=millis();
@@ -215,11 +215,15 @@ void loop() {
  phi = phi + phi_p*elapsedTime;
  //adelante();
 
+  if (tiempo > 1000 && tiempo < 2000)
+  {
+    izquierda();
+  }else para();
  char str[100];
  Tm = millis()-Tm;
- sprintf(str,"%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\n",Tm,DD,DI,(int)WI,(int)WD,(int)ref_I,(int)phi*100,(int)err_I,UI,UD);
+ sprintf(str,"%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\n",Tm,DD,DI,(int)WI,(int)WD,(int)ref_I,(int)phi*(180/pi),(int)err_I,UI,UD);
  Serial3.print(str);
- Serial.println(phi);
+ Serial.println(phi*(180/pi));
  Tm = millis();
  
 }
@@ -232,8 +236,8 @@ void loop() {
   digitalWrite(Trigger1, HIGH); //se genera el disparo de 10 us
   delayMicroseconds(10);
   digitalWrite(Trigger1, LOW);
-  duration= pulseIn(Echo1, HIGH);
-  distanceCm= duration *10/292/2;
+  duration = pulseIn(Echo1, HIGH);
+  distanceCm = duration *10/292/2;
   return distanceCm;
  }
 
@@ -278,11 +282,11 @@ void izquierda ()
   //direccion motor derecha
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
-  analogWrite(ENA, power);
+  analogWrite(ENA, 140);
   //direccion motor izquierda
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
-  analogWrite(ENB,power);
+  analogWrite(ENB,140);
 }
 
 void para ()
