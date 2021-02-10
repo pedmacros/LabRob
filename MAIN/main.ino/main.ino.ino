@@ -1,5 +1,5 @@
 #define baudrate 38400
-#define power 110
+#define power 100
 #define pi 3.141516
 #define b 0.1 //metros
 #define r 0.0325 //metros
@@ -27,7 +27,7 @@ int DI;
 //Errores
 float err = 0;
 float errPrev = 0;
-float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0, err_dif=0, errPrevDif = 0, err_D_int = 0, err_I_int = 0;
+float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0, err_dif=0, errPrev_dif = 0, err_D_int = 0, err_I_int = 0;
 
 //Control MODO1
 int Kp_1 = 1;
@@ -40,16 +40,16 @@ float KpDif_2 = 0.5;
 float KdDif_2 = 0;
 
 //Control MODO3
-float Kp_3 = 1;
-float Kd_3 = 2;
-float KpDif_3 = 0.5;
-float KdDif_3 = 0;
+float Kp_3 = 0;
+float Kd_3 = 0;
+float KpDif_3 = 10;
+float KdDif_3 = 3;
 
 //Control MODO4
-float Kp_4 = 1;
-float Kd_4 = 2;
-float KpDif_4 = 0.5;
-float KdDif_4 = 0;
+float Kp_4 = 0;
+float Kd_4 = 0;
+float KpDif_4 = 10;
+float KdDif_4 = 3;
 
 //Control MODO6
 float Kp_6 = 2;
@@ -167,6 +167,9 @@ void loop() {
     case 7:
       modo7();
     break;
+    case 8:
+      modo8();
+    break;
     default:
       para();
     break;
@@ -265,11 +268,11 @@ void modo2(){
  err = (DD+DI)/2 - ref;
 
  //Error ángulo
- errPrevDif= err_dif;
+ errPrev_dif= err_dif;
  err_dif = (DD-DI);
  
  U = abs(Kp_2 * err + Kd_2*(err-errPrev)/elapsedTime);
- UDif = abs(KpDif_2*err + KdDif_2*(err_dif-errPrevDif)/elapsedTime);
+ UDif = abs(KpDif_2*err + KdDif_2*(err_dif-errPrev_dif)/elapsedTime);
 
  U+=power;
  UD = U+UDif;
@@ -284,41 +287,39 @@ void modo2(){
  }
 }
 
-void modo3(){
+void modo3(){ //Se mantiene paralelo
+  //Solo necesitamos control diferencial
   //Error distancia
- errPrev = err;
- err = DD - ref;
+ err_dif = DD-DI;
  
- U = abs(Kp_3 * err + Kd_3*(err-errPrev)/elapsedTime);
- UDif = abs(KpDif_3*err + KdDif_3*(err_dif-errPrevDif)/elapsedTime);
+ UDif = KpDif_3*err_dif + KdDif_3*(err_dif-errPrev_dif)/elapsedTime;
 
- U = 130;
- if(err<0){
-  UD = U-UDif/2;
-  UI = U+UDif/2;
- }else if(err>0){
-   UD = U+UDif/2;
-   UI = U-UDif/2;
- }
+ errPrev_dif = err_dif;
+ 
+ if(UDif > 20) UDif = 20;
+ if(UDif < -20) UDif = -20;
+ UD = power + UDif/2;
+ UI = power - UDif/2;
+ 
  adelante();
 }
 
 void modo4(){
   //Error distancia
- errPrev = err;
- err = DD - ref;
+ err = (DI+DD)/2 - ref;
+ err_dif = DD-DI;
  
- U = abs(Kp_3 * err + Kd_3*(err-errPrev)/elapsedTime);
- UDif = abs(KpDif_3*err + KdDif_3*(err_dif-errPrevDif)/elapsedTime);
+ U = Kp_4*err + Kd_4*(err-errPrev)/elapsedTime;
+ UDif = KpDif_4*err_dif + KdDif_4*(err_dif-errPrev_dif)/elapsedTime;
 
- U = 130;
- if(err<0){
-  UD = U-UDif/2;
-  UI = U+UDif/2;
- }else if(err>0){
-   UD = U+UDif/2;
-   UI = U-UDif/2;
- }
+ errPrev = err;
+ errPrev_dif = err_dif;
+ 
+ if(UDif > 20) UDif = 20;
+ if(UDif < -20) UDif = -20;
+ UD = power + UDif/2 + U/2;
+ UI = power - UDif/2 - U/2;
+ 
  adelante();
 }
 
@@ -335,7 +336,6 @@ void modo6(){
   U_D = Kp_6*err_D + Kd_6*(err_D-err_1_D)/elapsedTime + Ki_6*err_D_int;
 
   err_1_D = err_D;
-  U_1_D = U_D;
 
   UD = U_D+power;
   err_D_int += err_D*elapsedTime;
@@ -351,7 +351,6 @@ void modo6(){
   //Actualización de errores
 
   err_1_I = err_I;
-  U_1_I = U_I;
 
   UI = U_I+power;
   err_I_int += err_I*elapsedTime;
@@ -403,6 +402,14 @@ void modo7(){
   if(UI < 0) UI = 0;
  derecha();
 
+}
+
+void modo8(){
+  
+  UD = ref+power;
+  UI = ref+power;
+
+  adelante();
 }
 
 int ping(int Trigger1, int Echo1) {
