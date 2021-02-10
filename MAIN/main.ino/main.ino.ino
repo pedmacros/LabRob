@@ -1,5 +1,5 @@
 #define baudrate 38400
-#define power 100
+#define power 110
 #define pi 3.141516
 #define b 0.1 //metros
 #define r 0.0325 //metros
@@ -46,8 +46,8 @@ float KpDif_3 = 10;
 float KdDif_3 = 3;
 
 //Control MODO4
-float Kp_4 = 0;
-float Kd_4 = 0;
+float Kp_4 = 3;
+float Kd_4 = 1;
 float KpDif_4 = 10;
 float KdDif_4 = 3;
 
