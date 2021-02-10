@@ -1,6 +1,8 @@
 #define baudrate 38400
 #define power 110
 #define pi 3.141516
+#define b 10.0
+#define r 3.25
 
 //Motor 1 derecha
 #define ENA 2
@@ -23,8 +25,8 @@ int Trigger2 = 50;
 int DI;
 
 //Errores
-int err = 0;
-int errPrev = 0;
+float err = 0;
+float errPrev = 0;
 float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0;
 
 //Control MODO1
@@ -32,19 +34,26 @@ int Kp_1 = 1;
 int Kd_1 = 2;
 
 //Control MODO6
-int Kp_6 = 0.1;
-int Td_6 = 100;
-int Ti_6 = 50;
-int q0_6,q1_6,q2_6;
+float Kp_6 = 2;
+float Kd_6 = 2;
+float Ki_6 = 0;
+//float q0_6,q1_6,q2_6;
+
+//Control MODO7
+float Kp_7 = 0.5;
+float Td_6 = 50;
+float Ti_6 = 50;
+float q0_6,q1_6,q2_6;
+
 //tiempo
 int tiempo, TiempoCont, tiempoPrev, elapsedTime;
 
 //Variables para el control en velocidad
-int WD = 0; //velocidades en rad/s
-int WI = 0;
-int N = 4; //Numero de ranuras del encoder
+float WD = 0; //velocidades en rad/s
+float WI = 0;
+int N = 8; //Numero de ranuras del encoder
 int TicksI,TicksD;
-
+float phi_p=0, phi=0;
 
 char input[4];
 int ref = 0;
@@ -71,6 +80,8 @@ void setup() {
   //Interrupciones
   attachInterrupt(digitalPinToInterrupt(20),interrupcionD, FALLING);  //interrupcion por flanco de bajada
   attachInterrupt(digitalPinToInterrupt(21),interrupcionI, FALLING); 
+
+  vel=20;
   
   Serial3.begin(baudrate); 
   i = 0;
@@ -91,9 +102,11 @@ void loop() {
   if((millis()-TiempoCont)>10)
   {
     //Calculamos la velocidad de la rueda izquierda
-    //((Ticks/10.0)*((1000.0/4.0)/48.0)*(2.0*pi))
-    WI=TicksI*3.2725;
-    WD=TicksD*3.2725;
+    //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
+    WI=TicksI*1,6362;
+    WD=TicksD*1,6362;
+    phi_p = abs(WD*r - WI*r)/b;
+    phi = phi + phi_p*0.01;
     TicksI=0;
     TicksD=0;
     TiempoCont=millis();
@@ -120,6 +133,9 @@ void loop() {
     case 6:
       modo6();
     break;
+    case 7:
+      modo7();
+    break;
     default:
       para();
     break;
@@ -131,12 +147,23 @@ void read_cmd(){
   switch(input[0]){
     case 'M':
       modo = input[1]-'0';
+      err = 0;
+      errPrev = 0;
+      err_I=0;
+      err_1_I=0;
+      err_2_I=0;
+      err_D=0;
+      err_1_D=0;
+      err_2_D=0;
+      U_1_D = 0;
+      U_1_I = 0;
       break;
     case 'r':
       ref = 10*(input[1]-'0')+(input[2]-'0');
       break;
     case 'v':
       vel = 10*(input[1]-'0')+(input[2]-'0');
+      Serial3.println(vel);
       break;
   }
   //Limpia el vector después de leerlo
@@ -172,40 +199,43 @@ void modo6(){
   //CONTROL RUEDA DERECHA
   //--------------------------------------
   //Error velocidad angular
+  ref_D=20;
+  ref_I=20;
   err_D=WD-ref_D;
 
-  q0_6 = Kp_6*(1+(Td_6/elapsedTime));
-  q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
-  q2_6 = Kp_6*Td_6/elapsedTime;
+  //q0_6 = Kp_6*(1+(Td_6/elapsedTime));
+  //q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
+  //q2_6 = Kp_6*Td_6/elapsedTime;
   
   //Actualización de las señal de control-
-  U_D = U_1_D + q0_6*err_D + q1_6*err_1_D + q2_6*err_2_D;
-
-  UD = U_D+power;
-
-  err_2_D = err_1_D;
+  //U_D = U_1_D + q0_6*err_D + q1_6*err_1_D + q2_6*err_2_D;
+  U_D = abs(Kp_6*err_D + Kd_6*(err_D-err_1_D)/elapsedTime);
+  //err_2_D = err_1_D;
   err_1_D = err_D;
   U_1_D = U_D;
 
+  UD = U_D+power;
   //--------------------------------------
   //CONTROL RUEDA IZQUIERDA
   //--------------------------------------
   //Error velocidad angular
   err_I=WI-ref_I;
 
-  q0_6 = Kp_6*(1+(Td_6/elapsedTime));
-  q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
-  q2_6 = Kp_6*Td_6/elapsedTime;
+  //q0_6 = Kp_6*(1+(Td_6/elapsedTime));
+  //q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
+  //q2_6 = Kp_6*Td_6/elapsedTime;
 
   //Actualización de la señal de control--
-  U_I = U_1_I + q0_6*err_I + q1_6*err_1_I + q2_6*err_2_I;
-
-  UI = U_I+power;
+  //U_I = U_1_I + q0_6*err_I + q1_6*err_1_I + q2_6*err_2_I;
+  U_I = abs(Kp_6*err_I + Kd_6*(err_I-err_1_I)/elapsedTime);
+  
 
   //Actualización de errores
-  err_2_I = err_1_I;
+  //err_2_I = err_1_I;
   err_1_I = err_I;
   U_1_I = U_I;
+
+  UI = U_I+power;
 
   //Saturación de la señal de control
   if(UD > 255) UD = 255;
@@ -214,6 +244,60 @@ void modo6(){
   if(UI < 0) UI = 0;
 
  adelante();
+
+}
+
+void modo7(){
+  //--------------------------------------
+  //CONTROL RUEDA DERECHA
+  //--------------------------------------
+  //Error velocidad angular
+  ref_D = vel;
+  ref_I = vel; 
+  err_D=ref_D-WD;
+
+  q0_6 = Kp_6*(1+(Td_6/elapsedTime));
+  q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
+  q2_6 = Kp_6*Td_6/elapsedTime;
+  
+  //Actualización de las señal de control-
+  U_D = abs(U_1_D + q0_6*err_D + q1_6*err_1_D + q2_6*err_2_D);
+
+  err_2_D = err_1_D;
+  err_1_D = err_D;
+  U_1_D = U_D;
+
+  UD = U_D+130;
+
+  //--------------------------------------
+  //CONTROL RUEDA IZQUIERDA
+  //--------------------------------------
+  //Error velocidad angular
+  err_I=ref_I-WD;
+
+  q0_6 = Kp_6*(1+(Td_6/elapsedTime));
+  q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
+  q2_6 = Kp_6*Td_6/elapsedTime;
+
+  //Actualización de la señal de control--
+  U_I = abs(U_1_I + q0_6*err_I + q1_6*err_1_I + q2_6*err_2_I);
+
+
+  //Actualización de errores
+  err_2_I = err_1_I;
+  err_1_I = err_I;
+  U_1_I = U_I;
+
+  UI = U_I+130;
+
+  //Saturación de la señal de control
+  if(UD > 255) UD = 255;
+  if(UD < 0) UD = 0;
+  if(UI > 255) UI = 255;
+  if(UI < 0) UI = 0;
+  Serial3.print("phi: ");
+  Serial3.println(phi);
+ derecha();
 
 }
 
@@ -251,6 +335,18 @@ void atras ()
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
   analogWrite(ENB,U);
+}
+
+void derecha ()
+{
+  //direccion motor derecha
+  digitalWrite(IN1,HIGH);
+  digitalWrite(IN2,LOW);
+  analogWrite(ENA, UD);
+  //direccion motor izquierda
+  digitalWrite(IN3,LOW);
+  digitalWrite(IN4,HIGH);
+  analogWrite(ENB,UI);
 }
 
 void para ()
