@@ -27,11 +27,29 @@ int DI;
 //Errores
 float err = 0;
 float errPrev = 0;
-float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0;
+float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0, err_dif=0, errPrevDif = 0;
 
 //Control MODO1
 int Kp_1 = 1;
 int Kd_1 = 2;
+
+//Control MODO2
+float Kp_2 = 1;
+float Kd_2 = 2;
+float KpDif_2 = 0.5;
+float KdDif_2 = 0;
+
+//Control MODO3
+float Kp_3 = 1;
+float Kd_3 = 2;
+float KpDif_3 = 0.5;
+float KdDif_3 = 0;
+
+//Control MODO4
+float Kp_4 = 1;
+float Kd_4 = 2;
+float KpDif_4 = 0.5;
+float KdDif_4 = 0;
 
 //Control MODO6
 float Kp_6 = 2;
@@ -59,7 +77,9 @@ char input[4];
 int ref = 0;
 int ref_I, ref_D;
 int vel,i,modo;
-int U = 0, UI = 0, UD = 0, U_D = 0, U_I = 0, U_1_I, U_1_D = 0;
+int U = 0,UDif=0, UI = 0, UD = 0, U_D = 0, U_I = 0, U_1_I, U_1_D = 0;
+float D_dist = 0, D_dif=0;
+
 
 void setup() {
   
@@ -82,7 +102,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(21),interrupcionI, FALLING); 
 
   vel=20;
-  
+  ref=30;
   Serial3.begin(baudrate); 
   i = 0;
 
@@ -103,6 +123,8 @@ void loop() {
   {
     //Calculamos la velocidad de la rueda izquierda
     //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
+    //b = 0.01 m
+    //r = 0.0325 m
     WI=TicksI*1.6362;
     WD=TicksD*1.6362;
     phi_p = abs(WD*r - WI*r)/b;
@@ -129,6 +151,15 @@ void loop() {
     break;
     case 1:
       modo1();
+    break;
+    case 2:
+      modo2();
+    break;
+    case 3:
+      modo3();
+    break;
+    case 4:
+      modo4();
     break;
     case 6:
       modo6();
@@ -192,6 +223,69 @@ void modo1(){
  }else{
   para();
  }
+}
+
+void modo2(){
+  //Error distancia
+ errPrev = err;
+ err = (DD+DI)/2 - ref;
+
+ //Error ángulo
+ errPrevDif= err_dif;
+ err_dif = (DD-DI);
+ 
+ U = abs(Kp_2 * err + Kd_2*(err-errPrev)/elapsedTime);
+ UDif = abs(KpDif_2*err + KdDif_2*(err_dif-errPrevDif)/elapsedTime);
+
+ U+=power;
+ UD = U+UDif;
+ UI = U-UDif;
+ if(err<0)
+ {
+  atras();
+ }else if(err>0){
+  adelante();
+ }else{
+  para();
+ }
+}
+
+void modo3(){
+  //Error distancia
+ errPrev = err;
+ err = DD - ref;
+ 
+ U = abs(Kp_3 * err + Kd_3*(err-errPrev)/elapsedTime);
+ UDif = abs(KpDif_3*err + KdDif_3*(err_dif-errPrevDif)/elapsedTime);
+
+ U = 130;
+ if(err<0){
+  UD = U-UDif/2;
+  UI = U+UDif/2;
+ }else if(err>0){
+   UD = U+UDif/2;
+   UI = U-UDif/2;
+ }
+ adelante();
+}
+
+void modo4(){
+  //Error distancia
+ errPrev = err;
+ err = DD - ref;
+ 
+ U = abs(Kp_3 * err + Kd_3*(err-errPrev)/elapsedTime);
+ UDif = abs(KpDif_3*err + KdDif_3*(err_dif-errPrevDif)/elapsedTime);
+
+ U = 130;
+ if(err<0){
+  UD = U-UDif/2;
+  UI = U+UDif/2;
+ }else if(err>0){
+   UD = U+UDif/2;
+   UI = U-UDif/2;
+ }
+ adelante();
 }
 
 void modo6(){
