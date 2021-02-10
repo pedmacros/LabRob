@@ -1,8 +1,8 @@
 #define baudrate 38400
 #define power 110
 #define pi 3.141516
-#define b 10.0
-#define r 3.25
+#define b 0.1 //metros
+#define r 0.0325 //metros
 
 //Motor 1 derecha
 #define ENA 2
@@ -103,8 +103,8 @@ void loop() {
   {
     //Calculamos la velocidad de la rueda izquierda
     //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
-    WI=TicksI*1,6362;
-    WD=TicksD*1,6362;
+    WI=TicksI*1.6362;
+    WD=TicksD*1.6362;
     phi_p = abs(WD*r - WI*r)/b;
     phi = phi + phi_p*0.01;
     TicksI=0;
@@ -202,15 +202,10 @@ void modo6(){
   ref_D=20;
   ref_I=20;
   err_D=WD-ref_D;
-
-  //q0_6 = Kp_6*(1+(Td_6/elapsedTime));
-  //q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
-  //q2_6 = Kp_6*Td_6/elapsedTime;
   
   //Actualización de las señal de control-
-  //U_D = U_1_D + q0_6*err_D + q1_6*err_1_D + q2_6*err_2_D;
   U_D = abs(Kp_6*err_D + Kd_6*(err_D-err_1_D)/elapsedTime);
-  //err_2_D = err_1_D;
+
   err_1_D = err_D;
   U_1_D = U_D;
 
@@ -221,17 +216,11 @@ void modo6(){
   //Error velocidad angular
   err_I=WI-ref_I;
 
-  //q0_6 = Kp_6*(1+(Td_6/elapsedTime));
-  //q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
-  //q2_6 = Kp_6*Td_6/elapsedTime;
-
   //Actualización de la señal de control--
-  //U_I = U_1_I + q0_6*err_I + q1_6*err_1_I + q2_6*err_2_I;
   U_I = abs(Kp_6*err_I + Kd_6*(err_I-err_1_I)/elapsedTime);
   
-
   //Actualización de errores
-  //err_2_I = err_1_I;
+
   err_1_I = err_I;
   U_1_I = U_I;
 
@@ -252,43 +241,32 @@ void modo7(){
   //CONTROL RUEDA DERECHA
   //--------------------------------------
   //Error velocidad angular
-  ref_D = vel;
-  ref_I = vel; 
-  err_D=ref_D-WD;
-
-  q0_6 = Kp_6*(1+(Td_6/elapsedTime));
-  q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
-  q2_6 = Kp_6*Td_6/elapsedTime;
+  ref_D=20;
+  ref_I=20;
+  err_D=WD-ref_D;
   
   //Actualización de las señal de control-
-  U_D = abs(U_1_D + q0_6*err_D + q1_6*err_1_D + q2_6*err_2_D);
+  U_D = abs(Kp_6*err_D + Kd_6*(err_D-err_1_D)/elapsedTime);
 
-  err_2_D = err_1_D;
   err_1_D = err_D;
   U_1_D = U_D;
 
-  UD = U_D+130;
-
+  UD = U_D+power;
   //--------------------------------------
   //CONTROL RUEDA IZQUIERDA
   //--------------------------------------
   //Error velocidad angular
-  err_I=ref_I-WD;
-
-  q0_6 = Kp_6*(1+(Td_6/elapsedTime));
-  q1_6 = Kp_6*(-1-2*Td_6/elapsedTime + elapsedTime/Ti_6);
-  q2_6 = Kp_6*Td_6/elapsedTime;
+  err_I=WI-ref_I;
 
   //Actualización de la señal de control--
-  U_I = abs(U_1_I + q0_6*err_I + q1_6*err_1_I + q2_6*err_2_I);
-
-
+  U_I = abs(Kp_6*err_I + Kd_6*(err_I-err_1_I)/elapsedTime);
+  
   //Actualización de errores
-  err_2_I = err_1_I;
+
   err_1_I = err_I;
   U_1_I = U_I;
 
-  UI = U_I+130;
+  UI = U_I+power;
 
   //Saturación de la señal de control
   if(UD > 255) UD = 255;
