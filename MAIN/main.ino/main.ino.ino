@@ -52,9 +52,9 @@ float KpDif_4 = 0.5;
 float KdDif_4 = 0;
 
 //Control MODO6
-float Kp_6 = 0.5;
+float Kp_6 = 2;
 float Kd_6 = 2;
-float Ki_6 = 0.1;
+float Ki_6 = 0;
 //float q0_6,q1_6,q2_6;
 
 //Control MODO7
@@ -70,7 +70,7 @@ double tiempo, TiempoCont, tiempoPrev, elapsedTime;
 float WD = 0; //velocidades en rad/s
 float WI = 0;
 int N = 8; //Numero de ranuras del encoder
-int TicksI,TicksD;
+float TicksI,TicksD;
 float phi_p=0, phi=0;
 
 char input[4];
@@ -123,7 +123,7 @@ void loop() {
   {
     //Calculamos la velocidad de la rueda izquierda
     //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
-    //b = 0.01 m
+    //b = 0.1 m
     //r = 0.0325 m
     WI=TicksI*1.6362;
     WD=TicksD*1.6362;
@@ -338,7 +338,7 @@ void modo6(){
   U_1_D = U_D;
 
   UD = U_D+power;
-  err_I_int += err*elapsedTime;
+  err_D_int += err_D*elapsedTime;
   //--------------------------------------
   //CONTROL RUEDA IZQUIERDA
   //--------------------------------------
@@ -354,7 +354,7 @@ void modo6(){
   U_1_I = U_I;
 
   UI = U_I+power;
-  err_I_int += err*elapsedTime;
+  err_I_int += err_I*elapsedTime;
   //Saturación de la señal de control
   if(UD > 255) UD = 255;
   if(UD < 0) UD = 0;
