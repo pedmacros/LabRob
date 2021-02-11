@@ -52,9 +52,9 @@ float KpDif_4 = 10;
 float KdDif_4 = 3;
 
 //Control MODO6
-float Kp_6 = 2;
-float Kd_6 = 2;
-float Ki_6 = 0;
+float Kp_6 = 50;
+float Kd_6 = 10;
+float Ki_6 = 0.05;
 //float q0_6,q1_6,q2_6;
 
 //Control MODO7
