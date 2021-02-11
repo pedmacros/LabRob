@@ -83,6 +83,8 @@ float x_p = 0, y_p = 0, phi_p = 0, x = 0, y = 0, phi = 0;
 char input[4];
 int ref = 0;
 int ref_I, ref_D;
+float refG = 0;
+int state = 0;
 int vel,i,modo;
 int U = 0,UDif=0, UI = 0, UD = 0, U_D = 0, U_I = 0, U_1_I, U_1_D = 0;
 float D_dist = 0, D_dif=0;
@@ -186,9 +188,6 @@ void loop() {
     case 7:
       modo7();
     break;
-    case 8:
-      modo8();
-    break;
     default:
       para();
     break;
@@ -211,7 +210,7 @@ void loop() {
   Serial3.print(WD);
   Serial3.print(";");
 
-  Serial3.print(ref);
+  Serial3.print(refG);
   Serial3.print(";");
 
   Serial3.print(vel);
@@ -251,6 +250,7 @@ void read_cmd(){
       U_1_I = 0;
       err_D_int = 0;
       err_I_int = 0;
+      state = 0;
       break;
     case 'r':
       ref = 10*(input[1]-'0')+(input[2]-'0');
@@ -392,7 +392,61 @@ void modo6(){
 }
 
 void modo7(){
-  //--------------------------------------
+  switch(state){
+    case 0:
+      vel = 5;
+      controlVel();
+      if(x>0.5){
+        state = 1;
+        refG = pi/2;
+        para();
+      }
+    break;
+    case 1:
+      controlGiro();
+      if(phi > refG){
+        state = 2;
+        para();
+      }
+    break;
+    case 2:
+      controlVel();
+      if(y > 0.5){
+        refG = pi;
+        para();
+        state = 3; 
+      }
+    break;
+    case 3:
+      controlGiro();
+      if(phi > refG){
+        state = 4;
+        para();
+      }
+    break;
+    case 4:
+      controlVel();
+      if(x < 0){
+        state = 5; 
+        refG = 3*pi/2;
+        para();
+      }
+    break;
+    case 5:
+      controlGiro();
+      if(phi > refG){
+        state = 6;
+        para();
+      }
+    break;
+    case 6:
+      controlVel();
+      if(y < 0) para();
+  }
+}
+
+void controlVel(){
+    //--------------------------------------
   //CONTROL RUEDA DERECHA
   //--------------------------------------
   //Error velocidad angular
@@ -445,12 +499,12 @@ void modo7(){
  adelante();
 }
 
-void modo8(){
+void controlGiro(){
   //--------------------------------------
   //CONTROL orientación
   //--------------------------------------
 
-  err_dif = pi/2 - phi;
+  err_dif = refG - phi;
 
   UDif = abs(KpDif_8*err_dif + KdDif_8*(err_dif-errPrev_dif)/elapsedTime + KiDif_8*errInt_dif);
 
@@ -461,18 +515,18 @@ void modo8(){
 
   errPrev_dif = err_dif;
   errInt_dif += err_dif*elapsedTime;
+  
   //Saturación de la señal de control
   if(UD > 255) UD = 255;
   if(UD < 0) UD = 0;
   if(UI > 255) UI = 255;
   if(UI < 0) UI = 0;
   
- if(err_dif > 0) UI = 0;
- if(err_dif < 0) UD = 0;
+  if(err_dif > 0) UI = 0;
+  if(err_dif < 0) UD = 0;
 
  adelante();
 }
-
 int ping(int Trigger1, int Echo1) {
   long duration, distanceCm;
   digitalWrite(Trigger1, LOW); //para generar un pulso limpio se pone a LOW 4us
