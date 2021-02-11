@@ -338,7 +338,6 @@ void modo6(){
   err_1_D = err_D;
 
   UD = U_D+power;
-  err_D_int += err_D*elapsedTime;
   //--------------------------------------
   //CONTROL RUEDA IZQUIERDA
   //--------------------------------------
@@ -353,12 +352,16 @@ void modo6(){
   err_1_I = err_I;
 
   UI = U_I+power;
-  err_I_int += err_I*elapsedTime;
+  
   //Saturación de la señal de control
   if(UD > 255) UD = 255;
   if(UD < 0) UD = 0;
   if(UI > 255) UI = 255;
   if(UI < 0) UI = 0;
+
+  if(UD > 0 && UD <255)err_D_int += err_D*elapsedTime;
+  if(UI > 0 && UI <255)err_I_int += err_I*elapsedTime;
+  
  adelante();
 
 }
