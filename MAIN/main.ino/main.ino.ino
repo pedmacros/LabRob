@@ -27,7 +27,7 @@ int DI;
 //Errores
 float err = 0;
 float errPrev = 0;
-float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0, err_dif=0, errPrev_dif = 0, err_D_int = 0, err_I_int = 0;
+float err_I=0,err_1_I=0,err_2_I=0,err_D=0,err_1_D=0,err_2_D=0, err_dif=0, errInt_dif = 0, errPrev_dif = 0, err_D_int = 0, err_I_int = 0;
 
 //Control MODO1
 int Kp_1 = 1;
@@ -55,13 +55,17 @@ float KdDif_4 = 3;
 float Kp_6 = 50;
 float Kd_6 = 10;
 float Ki_6 = 0.05;
-//float q0_6,q1_6,q2_6;
 
 //Control MODO7
-float Kp_7 = 0.5;
-float Td_6 = 50;
-float Ti_6 = 50;
-float q0_6,q1_6,q2_6;
+float Kp_7 = 50;
+float Kd_7 = 10;
+float Ki_7 = 0.05;
+float KpDif_7 = 10;
+
+//Control MODO8
+float KpDif_8 = 20;
+float KdDif_8 = 10;
+float KiDif_8 = 0;
 
 //tiempo
 double tiempo, TiempoCont, tiempoPrev, elapsedTime;
@@ -70,8 +74,11 @@ double tiempo, TiempoCont, tiempoPrev, elapsedTime;
 float WD = 0; //velocidades en rad/s
 float WI = 0;
 int N = 8; //Numero de ranuras del encoder
+float V = 0; //Velocidad lineal
 float TicksI,TicksD;
-float phi_p=0, phi=0;
+
+//Odometria
+float x_p = 0, y_p = 0, phi_p = 0, x = 0, y = 0, phi = 0;
 
 char input[4];
 int ref = 0;
@@ -125,10 +132,22 @@ void loop() {
     //((Ticks/10.0)*((1000.0/8.0)/48.0)*(2.0*pi))
     //b = 0.1 m
     //r = 0.0325 m
+
+    //Cálculo de la velocidad
     WI=TicksI*1.6362;
     WD=TicksD*1.6362;
-    phi_p = abs(WD*r - WI*r)/b;
-    phi = phi + phi_p*0.01;
+
+    V = ((WI+WD)/2)*r;
+    //Cálculo de la posición
+    phi_p = ((WD-WI)*r)/b;
+    phi += phi_p*elapsedTime/1000;
+    
+    x_p = V*cos(phi);
+    y_p = V*sin(phi);
+
+    x += x_p*elapsedTime/1000;
+    y += y_p*elapsedTime/1000;
+    
     TicksI=0;
     TicksD=0;
     TiempoCont=millis();
@@ -196,6 +215,12 @@ void loop() {
   Serial3.print(";");
 
   Serial3.print(vel);
+  Serial3.print(";");
+
+  Serial3.print(x);
+  Serial3.print(";");
+
+  Serial3.print(y);
   Serial3.print(";");
 
   Serial3.print(phi);
@@ -371,48 +396,81 @@ void modo7(){
   //CONTROL RUEDA DERECHA
   //--------------------------------------
   //Error velocidad angular
-  ref_D=20;
-  ref_I=20;
-  err_D=WD-ref_D;
+  ref_D=vel;
+  ref_I=vel;
+  err_D=ref_D-WD;
   
   //Actualización de las señal de control-
-  U_D = abs(Kp_6*err_D + Kd_6*(err_D-err_1_D)/elapsedTime);
+  U_D = Kp_7*err_D + Kd_7*(err_D-err_1_D)/elapsedTime + Ki_7*err_D_int;
 
   err_1_D = err_D;
-  U_1_D = U_D;
 
-  UD = U_D+power;
+  
   //--------------------------------------
   //CONTROL RUEDA IZQUIERDA
   //--------------------------------------
   //Error velocidad angular
-  err_I=WI-ref_I;
+  err_I=ref_I-WI;
 
   //Actualización de la señal de control--
-  U_I = abs(Kp_6*err_I + Kd_6*(err_I-err_1_I)/elapsedTime);
+  U_I = Kp_7*err_I + Kd_7*(err_I-err_1_I)/elapsedTime + Ki_7*err_I_int;
   
   //Actualización de errores
 
   err_1_I = err_I;
-  U_1_I = U_I;
 
-  UI = U_I+power;
+  //--------------------------------------
+  //CONTROL orientación
+  //--------------------------------------
 
+  err_dif = phi;
+
+  UDif = KpDif_7*err_dif;
+
+  if(UDif > 20) UDif = 20;
+  if(UDif < -20) UDif = -20;
+  
+  UD = power + U_D - UDif/2;
+  UI = power + U_I + UDif/2;
+  
   //Saturación de la señal de control
   if(UD > 255) UD = 255;
   if(UD < 0) UD = 0;
   if(UI > 255) UI = 255;
   if(UI < 0) UI = 0;
- derecha();
 
+  if(UD > 0 && UD <255)err_D_int += err_D*elapsedTime;
+  if(UI > 0 && UI <255)err_I_int += err_I*elapsedTime;
+  
+ adelante();
 }
 
 void modo8(){
-  
-  UD = ref+power;
-  UI = ref+power;
+  //--------------------------------------
+  //CONTROL orientación
+  //--------------------------------------
 
-  adelante();
+  err_dif = pi/2 - phi;
+
+  UDif = abs(KpDif_8*err_dif + KdDif_8*(err_dif-errPrev_dif)/elapsedTime + KiDif_8*errInt_dif);
+
+  
+  UD = power + UDif/2;
+  UI = power + UDif/2;
+
+
+  errPrev_dif = err_dif;
+  errInt_dif += err_dif*elapsedTime;
+  //Saturación de la señal de control
+  if(UD > 255) UD = 255;
+  if(UD < 0) UD = 0;
+  if(UI > 255) UI = 255;
+  if(UI < 0) UI = 0;
+  
+ if(err_dif > 0) UI = 0;
+ if(err_dif < 0) UD = 0;
+
+ adelante();
 }
 
 int ping(int Trigger1, int Echo1) {
@@ -460,6 +518,18 @@ void derecha ()
   //direccion motor izquierda
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH);
+  analogWrite(ENB,UI);
+}
+
+void izquierda ()
+{
+  //direccion motor derecha
+  digitalWrite(IN1,LOW);
+  digitalWrite(IN2,HIGH);
+  analogWrite(ENA, UD);
+  //direccion motor izquierda
+  digitalWrite(IN3,HIGH);
+  digitalWrite(IN4,LOW);
   analogWrite(ENB,UI);
 }
 
