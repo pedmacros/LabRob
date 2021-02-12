@@ -210,7 +210,7 @@ void loop() {
   Serial3.print(WD);
   Serial3.print(";");
 
-  Serial3.print(refG);
+  Serial3.print(ref);
   Serial3.print(";");
 
   Serial3.print(vel);
